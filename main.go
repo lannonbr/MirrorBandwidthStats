@@ -7,8 +7,10 @@ import (
 	"io"
 	"log"
 	"os"
+	"strconv"
 	"strings"
 
+	humanize "github.com/dustin/go-humanize"
 	"github.com/lannonbr/MirrorBandwidthStats/models"
 )
 
@@ -32,9 +34,12 @@ func loadBandwidthCSV(filename string) []models.BandwidthEntry {
 			log.Fatalln("Error reading csv line", err)
 		}
 
+		recv, _ := strconv.ParseUint(cleanupBytes(line[0]), 10, 64)
+		send, _ := strconv.ParseUint(cleanupBytes(line[1]), 10, 64)
+
 		entries = append(entries, models.BandwidthEntry{
-			Recv:      line[0],
-			Send:      line[1],
+			Recv:      recv,
+			Send:      send,
 			Timestamp: line[2],
 		})
 	}
@@ -52,13 +57,17 @@ func main() {
 
 	fmt.Printf("Number of entries: %d\n", len(entries))
 
-	for i := range entries {
-		entries[i].Recv = cleanupBytes(entries[i].Recv)
-		entries[i].Send = cleanupBytes(entries[i].Send)
-	}
-
 	for _, entry := range entries {
 		fmt.Println(entry.ToJSON())
 	}
 
+	var totalRecv, totalSend uint64
+
+	for _, entry := range entries {
+		totalRecv += entry.Recv
+		totalSend += entry.Send
+	}
+
+	fmt.Println("Total Received:", humanize.Bytes(totalRecv))
+	fmt.Println("Total Sent:", humanize.Bytes(totalSend))
 }
