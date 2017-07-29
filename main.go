@@ -47,19 +47,15 @@ func loadBandwidthCSV(filename string) []models.BandwidthEntry {
 	return entries
 }
 
-func main() {
+func humanizeBits(bits uint64) string {
+	str := humanize.Bytes(bits)
+	strArr := strings.Split(str, " ")
+	str = strArr[0] + string([]rune(strArr[1])[0]) + "b"
+	return str
+}
 
-	filename := os.Args[1]
-
-	fmt.Println("Preparing to read CSV File:", filename)
-
+func analyzeFile(filename string, fullPrint bool) (uint64, uint64, uint64, uint64) {
 	entries := loadBandwidthCSV(filename)
-
-	fmt.Printf("Number of entries: %d\n", len(entries))
-
-	for _, entry := range entries {
-		fmt.Println(entry.ToJSON())
-	}
 
 	var totalRecv, totalSend uint64
 
@@ -68,6 +64,53 @@ func main() {
 		totalSend += entry.Send
 	}
 
-	fmt.Println("Total Received:", humanize.Bytes(totalRecv))
-	fmt.Println("Total Sent:", humanize.Bytes(totalSend))
+	if fullPrint {
+		fmt.Println("Filename:", filename)
+	}
+
+	humanRecv := humanize.Bytes(totalRecv)
+	humanSend := humanize.Bytes(totalSend)
+
+	totalOverall := totalRecv + totalSend
+	humanOverall := humanize.Bytes(totalOverall)
+
+	rate := ((totalRecv + totalSend) * 8) / 3550
+
+	if fullPrint {
+		fmt.Println("Total Received:", humanRecv)
+		fmt.Println("Total Sent:", humanSend)
+		fmt.Println("Total overall:", humanOverall)
+		fmt.Println("Rate:", humanizeBits(rate)+"/sec")
+		fmt.Println("------")
+	}
+
+	return totalRecv, totalSend, totalOverall, rate
+}
+
+func main() {
+
+	files := os.Args[1:]
+
+	var counter int
+
+	var totalRecv, totalSend, totalOverall, totalRate, avgRate uint64
+
+	for _, arg := range files {
+		recv, send, overall, rate := analyzeFile(arg, false)
+		counter++
+
+		totalRecv += recv
+		totalSend += send
+		totalOverall += overall
+
+		totalRate += rate
+	}
+
+	avgRate = totalRate / uint64(counter)
+
+	fmt.Println("Recieved:", humanize.Bytes(totalRecv))
+	fmt.Println("Sent:", humanize.Bytes(totalSend))
+	fmt.Println("Overall:", humanize.Bytes(totalOverall))
+	fmt.Println("Rate:", humanizeBits(avgRate)+"/sec")
+
 }
