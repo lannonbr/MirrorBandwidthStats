@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"database/sql"
 	"encoding/csv"
 	"fmt"
 	"io"
@@ -13,6 +14,7 @@ import (
 
 	humanize "github.com/dustin/go-humanize"
 	"github.com/lannonbr/MirrorBandwidthStats/models"
+	_ "github.com/mattn/go-sqlite3"
 )
 
 func cleanupBytes(str string) string {
@@ -80,7 +82,7 @@ func analyzeFile(filename string, fullPrint bool) (uint64, uint64, uint64, uint6
 		fmt.Println("Total Sent:", humanSend)
 		fmt.Println("Total overall:", humanOverall)
 		fmt.Println("Rate:", humanizeBits(rate)+"/sec")
-		fmt.Println("------")
+		fmt.Println("------------")
 	}
 
 	return totalRecv, totalSend, totalOverall, rate
@@ -100,10 +102,112 @@ func csvPrint(date string, totalRecv, totalSend, totalOverall, avgRate uint64) {
 }
 
 func csvPrintRaw(date string, totalRecv, totalSend, totalOverall, avgRate uint64) {
-	fmt.Printf("%s,%d,%d,%d,%d", date, totalRecv, totalSend, totalOverall, avgRate)
+	fmt.Printf("%s,%d,%d,%d,%d\n", date, totalRecv, totalSend, totalOverall, avgRate)
+}
+
+func sqlOutputHour(date string, totalRecv, totalSend, avgRate uint64) {
+
+	avgRateMB := float64(avgRate) / 1000000
+
+	db, err := sql.Open("sqlite3", "./mirrorband.sqlite")
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	sqlStr := fmt.Sprintf("INSERT INTO hour (time, rx, tx, rate) VALUES (%s, %d, %d, %f)", date, totalRecv, totalSend, avgRateMB)
+	if _, err = db.Exec(sqlStr); err != nil {
+		fmt.Println(err)
+	}
+}
+
+func sqlOutputDay(date string, totalRecv, totalSend, avgRate uint64) {
+
+	avgRateMB := float64(avgRate) / 1000000
+	var time, sqlStr string
+
+	db, err := sql.Open("sqlite3", "./mirrorband.sqlite")
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	row, err := db.Query("SELECT time FROM day ORDER BY id DESC LIMIT 1")
+	if err != nil {
+		fmt.Println(err)
+	}
+	defer row.Close()
+
+	if !row.Next() {
+		// nothing in the database
+		sqlStr = fmt.Sprintf("INSERT INTO day (time, rx, tx, rate) VALUES (%s, %d, %d, %f)", date, totalRecv, totalSend, avgRateMB)
+		if _, err = db.Exec(sqlStr); err != nil {
+			fmt.Println(err)
+		}
+	} else {
+		if err = row.Scan(&time); err != nil {
+			fmt.Println(err)
+		}
+
+		if strings.Compare(time, date) == 0 {
+			sqlStr = fmt.Sprintf("UPDATE day SET rx=%d, tx=%d, rate=%f WHERE time=%s", totalRecv, totalSend, avgRateMB, date)
+			if _, err = db.Exec(sqlStr); err != nil {
+				fmt.Println(err)
+			}
+		} else {
+			sqlStr = fmt.Sprintf("INSERT INTO day (time, rx, tx, rate) VALUES (%s, %d, %d, %f)", date, totalRecv, totalSend, avgRateMB)
+			if _, err = db.Exec(sqlStr); err != nil {
+				fmt.Println(err)
+			}
+		}
+	}
+}
+
+func sqlOutputMonth(date string, totalRecv, totalSend, avgRate uint64) {
+
+	avgRateMB := float64(avgRate) / 1000000
+	var time, sqlStr string
+
+	db, err := sql.Open("sqlite3", "./mirrorband.sqlite")
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	row, err := db.Query("SELECT time FROM month ORDER BY id DESC LIMIT 1")
+	if err != nil {
+		fmt.Println(err)
+	}
+	defer row.Close()
+
+	if !row.Next() {
+		// nothing in the database
+		sqlStr = fmt.Sprintf("INSERT INTO month (time, rx, tx, rate) VALUES (%s, %d, %d, %f)", date, totalRecv, totalSend, avgRateMB)
+		if _, err = db.Exec(sqlStr); err != nil {
+			fmt.Println(err)
+		}
+	} else {
+		if err = row.Scan(&time); err != nil {
+			fmt.Println(err)
+		}
+
+		if strings.Compare(time, date) == 0 {
+			sqlStr = fmt.Sprintf("UPDATE month SET rx=%d, tx=%d, rate=%f WHERE time=%s", totalRecv, totalSend, avgRateMB, date)
+			if _, err = db.Exec(sqlStr); err != nil {
+				fmt.Println(err)
+			}
+		} else {
+			sqlStr = fmt.Sprintf("INSERT INTO month (time, rx, tx, rate) VALUES (%s, %d, %d, %f)", date, totalRecv, totalSend, avgRateMB)
+			if _, err = db.Exec(sqlStr); err != nil {
+				fmt.Println(err)
+			}
+		}
+	}
 }
 
 func main() {
+
+	if len(os.Args) < 3 {
+		log.Fatalln("Error: Not enough arguments. (Format: './MirrorBandwidthStats <format> <files>')")
+		os.Exit(1)
+	}
 
 	format := os.Args[1]
 	files := os.Args[2:]
@@ -157,6 +261,12 @@ func main() {
 		csvPrintRaw(date, totalRecv, totalSend, totalOverall, avgRate)
 	case "csv_hour_raw":
 		csvPrintRaw(dateWithHour, totalRecv, totalSend, totalOverall, avgRate)
+	// Output to SQL
+	case "sql_hour":
+		sqlOutputHour(dateWithHour, totalRecv, totalSend, avgRate)
+	case "sql_day":
+		sqlOutputDay(date, totalRecv, totalSend, avgRate)
+	case "sql_month":
+		sqlOutputMonth(dateMonth, totalRecv, totalSend, avgRate)
 	}
-
 }
