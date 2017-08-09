@@ -114,7 +114,7 @@ func sqlOutputHour(date string, totalRecv, totalSend, avgRate uint64) {
 		fmt.Println(err)
 	}
 
-	sqlStr := fmt.Sprintf("INSERT INTO hour (time, rx, tx, rate) VALUES (%s, %d, %d, %f)", date, totalRecv, totalSend, avgRateMB)
+	sqlStr := fmt.Sprintf("INSERT INTO hour (time, rx, tx, rate) VALUES (\"%s\", %d, %d, %f)", date, totalRecv, totalSend, avgRateMB)
 	if _, err = db.Exec(sqlStr); err != nil {
 		fmt.Println(err)
 	}
@@ -134,26 +134,27 @@ func sqlOutputDay(date string, totalRecv, totalSend, avgRate uint64) {
 	if err != nil {
 		fmt.Println(err)
 	}
-	defer row.Close()
 
 	if !row.Next() {
 		// nothing in the database
-		sqlStr = fmt.Sprintf("INSERT INTO day (time, rx, tx, rate) VALUES (%s, %d, %d, %f)", date, totalRecv, totalSend, avgRateMB)
+		sqlStr = fmt.Sprintf("INSERT INTO day (time, rx, tx, rate) VALUES (\"%s\", %d, %d, %f)", date, totalRecv, totalSend, avgRateMB)
 		if _, err = db.Exec(sqlStr); err != nil {
 			fmt.Println(err)
 		}
+		row.Close()
 	} else {
 		if err = row.Scan(&time); err != nil {
 			fmt.Println(err)
 		}
+		row.Close()
 
 		if strings.Compare(time, date) == 0 {
-			sqlStr = fmt.Sprintf("UPDATE day SET rx=%d, tx=%d, rate=%f WHERE time=%s", totalRecv, totalSend, avgRateMB, date)
+			sqlStr = fmt.Sprintf("UPDATE day SET rx=%d, tx=%d, rate=%f WHERE time=\"%s\"", totalRecv, totalSend, avgRateMB, date)
 			if _, err = db.Exec(sqlStr); err != nil {
 				fmt.Println(err)
 			}
 		} else {
-			sqlStr = fmt.Sprintf("INSERT INTO day (time, rx, tx, rate) VALUES (%s, %d, %d, %f)", date, totalRecv, totalSend, avgRateMB)
+			sqlStr = fmt.Sprintf("INSERT INTO day (time, rx, tx, rate) VALUES (\"%s\", %d, %d, %f)", date, totalRecv, totalSend, avgRateMB)
 			if _, err = db.Exec(sqlStr); err != nil {
 				fmt.Println(err)
 			}
@@ -173,30 +174,32 @@ func sqlOutputMonth(date string, totalRecv, totalSend, avgRate uint64) {
 
 	row, err := db.Query("SELECT time FROM month ORDER BY id DESC LIMIT 1")
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println("SELECT error:", err)
 	}
-	defer row.Close()
 
 	if !row.Next() {
 		// nothing in the database
-		sqlStr = fmt.Sprintf("INSERT INTO month (time, rx, tx, rate) VALUES (%s, %d, %d, %f)", date, totalRecv, totalSend, avgRateMB)
+		sqlStr = fmt.Sprintf("INSERT INTO month (time, rx, tx, rate) VALUES (\"%s\", %d, %d, %f)", date, totalRecv, totalSend, avgRateMB)
 		if _, err = db.Exec(sqlStr); err != nil {
-			fmt.Println(err)
+			fmt.Println("Insert Err 1:", err)
 		}
+		row.Close()
 	} else {
 		if err = row.Scan(&time); err != nil {
-			fmt.Println(err)
+			fmt.Println("Try grabbing time err:", err)
 		}
+		row.Close()
 
 		if strings.Compare(time, date) == 0 {
-			sqlStr = fmt.Sprintf("UPDATE month SET rx=%d, tx=%d, rate=%f WHERE time=%s", totalRecv, totalSend, avgRateMB, date)
+			sqlStr = fmt.Sprintf("UPDATE month SET rx=%d, tx=%d, rate=%f WHERE time=\"%s\"", totalRecv, totalSend, avgRateMB, date)
 			if _, err = db.Exec(sqlStr); err != nil {
-				fmt.Println(err)
+				fmt.Println("Update err:", err)
 			}
 		} else {
-			sqlStr = fmt.Sprintf("INSERT INTO month (time, rx, tx, rate) VALUES (%s, %d, %d, %f)", date, totalRecv, totalSend, avgRateMB)
+			sqlStr = fmt.Sprintf("INSERT INTO month (time, rx, tx, rate) VALUES (\"%s\", %d, %d, %f)", date, totalRecv, totalSend, avgRateMB)
+			fmt.Println(sqlStr)
 			if _, err = db.Exec(sqlStr); err != nil {
-				fmt.Println(err)
+				fmt.Println("Insert Err 2:", err)
 			}
 		}
 	}
@@ -221,6 +224,8 @@ func main() {
 	date := fmt.Sprintf("%s/%s/%s", month, day, year)
 	dateWithHour := fmt.Sprintf("%s/%s/%s %s:00", month, day, year, hour)
 	dateMonth := fmt.Sprintf("%s/%s", month, year)
+
+	fmt.Println(dateMonth)
 
 	var counter int
 
