@@ -8,7 +8,7 @@ from dstat.
 For example, if you want to view the aggregate of July 2017, run the following:
 
 ```
-$ ./MirrorBandwidthStats pretty_month $CSVPath/mirror-Jul-[0-3][0-9]-2017*
+$ ./MirrorBandwidthStats pretty_month $CSVPath/mirror-Jul-*-2017*
 ```
 
 The first argument is the format which the data will be outputted.
