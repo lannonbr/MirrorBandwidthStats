@@ -205,6 +205,48 @@ func sqlOutputMonth(date string, totalRecv, totalSend, avgRate uint64) {
 	}
 }
 
+func sqlOutputAggregate(date string, totalOverall uint64) {
+	var time, sqlStr string
+
+	db, err := sql.Open("sqlite3", "./mirrorband.sqlite")
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	row, err := db.Query("SELECT time FROM agg ORDER BY id DESC LIMIT 1")
+	if err != nil {
+		fmt.Println("Select error:", err)
+	}
+
+	if !row.Next() {
+		//Nothing in table
+		sqlStr = fmt.Sprintf("INSERT INTO agg (time, total) VALUES (\"%s\", %d)", date, totalOverall)
+		if _, err = db.Exec(sqlStr); err != nil {
+			fmt.Println("Insert Err 1:", err)
+		}
+		row.Close()
+	} else {
+		if err = row.Scan(&time); err != nil {
+			fmt.Println("Error: Failed trying to grab time:", err)
+		}
+		row.Close()
+
+		if strings.Compare(time, date) == 0 {
+			sqlStr = fmt.Sprintf("UPDATE agg SET total=%d WHERE time=\"%s\"", totalOverall, date)
+			if _, err = db.Exec(sqlStr); err != nil {
+				fmt.Println("Update err:", err)
+			}
+		} else {
+			sqlStr = fmt.Sprintf("INSERT INTO agg (time, total) VALUES (\"%s\", %d)", date, totalOverall)
+			fmt.Println(sqlStr)
+			if _, err = db.Exec(sqlStr); err != nil {
+				fmt.Println("Insert Err 2:", err)
+			}
+		}
+	}
+
+}
+
 func main() {
 
 	if len(os.Args) < 3 {
@@ -273,5 +315,7 @@ func main() {
 		sqlOutputDay(date, totalRecv, totalSend, avgRate)
 	case "sql_month":
 		sqlOutputMonth(dateMonth, totalRecv, totalSend, avgRate)
+	case "sql_agg":
+		sqlOutputAggregate(dateMonth, totalOverall)
 	}
 }

@@ -3,8 +3,10 @@ package main
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"log"
 	"os"
+	"strconv"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -117,8 +119,37 @@ func exportMonth() {
 	file.Close()
 }
 
+func exportTotal() {
+	db, err := sql.Open("sqlite3", "../mirrorband.sqlite")
+	checkErr("Error: Failed opening database: ", err)
+
+	rows, err := db.Query("SELECT * FROM agg")
+	checkErr("Error: query failed", err)
+
+	var total int64
+	var tot int64
+
+	for rows.Next() {
+		err = rows.Scan(&id, &time, &tot)
+		checkErr("Error: Failed extracting data from row: ", err)
+
+		total += tot
+	}
+
+	fmt.Println(total)
+
+	percentage := float64(total) / 1000000000000000.0
+
+	file, _ := os.Create("./total.js")
+	file.WriteString("window.pb = { total: " + strconv.FormatInt(total, 10) + ", percentage: " + strconv.FormatFloat(percentage, 'f', 5, 64) + "};\n")
+
+	file.Sync()
+	file.Close()
+}
+
 func main() {
 	exportHour()
 	exportDay()
 	exportMonth()
+	exportTotal()
 }
