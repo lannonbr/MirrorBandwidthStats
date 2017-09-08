@@ -30,7 +30,7 @@ func checkErr(str string, err error) {
 }
 
 func exportHour() {
-	db, err := sql.Open("sqlite3", "../mirrorband.sqlite")
+	db, err := sql.Open("sqlite3", "./mirrorband.sqlite")
 	checkErr("Error: Failed opening database: ", err)
 
 	rows, err := db.Query("SELECT * FROM hour ORDER BY id DESC LIMIT 24")
@@ -60,7 +60,7 @@ func exportHour() {
 }
 
 func exportDay() {
-	db, err := sql.Open("sqlite3", "../mirrorband.sqlite")
+	db, err := sql.Open("sqlite3", "./mirrorband.sqlite")
 	checkErr("Error: Failed opening database: ", err)
 
 	rows, err := db.Query("SELECT * FROM day ORDER BY id DESC LIMIT 7")
@@ -90,7 +90,7 @@ func exportDay() {
 }
 
 func exportMonth() {
-	db, err := sql.Open("sqlite3", "../mirrorband.sqlite")
+	db, err := sql.Open("sqlite3", "./mirrorband.sqlite")
 	checkErr("Error: Failed opening database: ", err)
 
 	rows, err := db.Query("SELECT * FROM month ORDER BY id DESC LIMIT 12")
@@ -120,7 +120,7 @@ func exportMonth() {
 }
 
 func exportTotal() {
-	db, err := sql.Open("sqlite3", "../mirrorband.sqlite")
+	db, err := sql.Open("sqlite3", "./mirrorband.sqlite")
 	checkErr("Error: Failed opening database: ", err)
 
 	rows, err := db.Query("SELECT * FROM agg")
