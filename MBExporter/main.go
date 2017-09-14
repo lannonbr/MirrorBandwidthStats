@@ -3,7 +3,6 @@ package main
 import (
 	"database/sql"
 	"encoding/json"
-	"fmt"
 	"log"
 	"os"
 	"strconv"
@@ -29,7 +28,7 @@ func checkErr(str string, err error) {
 	}
 }
 
-func exportHour() {
+func exportHour() string {
 	db, err := sql.Open("sqlite3", "./mirrorband.sqlite")
 	checkErr("Error: Failed opening database: ", err)
 
@@ -49,17 +48,10 @@ func exportHour() {
 	jsonByteArr, err := json.Marshal(entries)
 	checkErr("Error: Marshalling data failed: ", err)
 
-	file, _ := os.Create("./hour.js")
-
-	file.WriteString("window.hourData = ")
-	file.WriteString(string(jsonByteArr))
-	file.WriteString(";\n")
-
-	file.Sync()
-	file.Close()
+	return "window.hourData = " + string(jsonByteArr) + ";\n"
 }
 
-func exportDay() {
+func exportDay() string {
 	db, err := sql.Open("sqlite3", "./mirrorband.sqlite")
 	checkErr("Error: Failed opening database: ", err)
 
@@ -79,17 +71,10 @@ func exportDay() {
 	jsonByteArr, err := json.Marshal(entries)
 	checkErr("Error: Marshalling data failed: ", err)
 
-	file, _ := os.Create("./day.js")
-
-	file.WriteString("window.dayData = ")
-	file.WriteString(string(jsonByteArr))
-	file.WriteString(";\n")
-
-	file.Sync()
-	file.Close()
+	return "window.dayData = " + string(jsonByteArr) + ";\n"
 }
 
-func exportMonth() {
+func exportMonth() string {
 	db, err := sql.Open("sqlite3", "./mirrorband.sqlite")
 	checkErr("Error: Failed opening database: ", err)
 
@@ -109,17 +94,10 @@ func exportMonth() {
 	jsonByteArr, err := json.Marshal(entries)
 	checkErr("Error: Marshalling data failed: ", err)
 
-	file, _ := os.Create("./month.js")
-
-	file.WriteString("window.monthData = ")
-	file.WriteString(string(jsonByteArr))
-	file.WriteString(";\n")
-
-	file.Sync()
-	file.Close()
+	return "window.monthData = " + string(jsonByteArr) + ";\n"
 }
 
-func exportTotal() {
+func exportTotal() string {
 	db, err := sql.Open("sqlite3", "./mirrorband.sqlite")
 	checkErr("Error: Failed opening database: ", err)
 
@@ -136,20 +114,24 @@ func exportTotal() {
 		total += tot
 	}
 
-	fmt.Println(total)
-
 	percentage := float64(total) / 1000000000000000.0
 
-	file, _ := os.Create("./total.js")
-	file.WriteString("window.pb = { total: " + strconv.FormatInt(total, 10) + ", percentage: " + strconv.FormatFloat(percentage, 'f', 5, 64) + "};\n")
-
-	file.Sync()
-	file.Close()
+	return "window.pb = { total: " + strconv.FormatInt(total, 10) + ", percentage: " + strconv.FormatFloat(percentage, 'f', 5, 64) + "};\n"
 }
 
 func main() {
-	exportHour()
-	exportDay()
-	exportMonth()
-	exportTotal()
+	hourStr := exportHour()
+	dayStr := exportDay()
+	monthStr := exportMonth()
+	totalStr := exportTotal()
+
+	file, _ := os.Create("./statsData.js")
+
+	file.WriteString(hourStr)
+	file.WriteString(dayStr)
+	file.WriteString(monthStr)
+	file.WriteString(totalStr)
+
+	file.Sync()
+	file.Close()
 }
