@@ -101,7 +101,7 @@ func main() {
 
 	distroMap = scanFile("./Yest.log", distroMap, dat)
 
-	repoList := []string{"alpine", "archlinux", "blender", "centos", "clonezilla", "cpan", "cran", "ctan", "cygwin", "debian", "debian-cd", "debian-security", "fedora", "fedora-epel", "freebsd", "gentoo", "gentoo-portage", "gnu", "gparted", "ipfire", "isabelle", "linux", "linuxmint", "manjaro", "odroid", "openbsd", "opensuse", "parrot", "raspbian", "sabayon", "serenity", "slackware", "slitaz", "tdf", "ubuntu", "ubuntu-cdimage", "ubuntu-ports", "ubuntu-releases", "videolan", "voidlinux"}
+	repoList := []string{"alpine", "archlinux", "blender", "centos", "clonezilla", "cpan", "cran", "ctan", "cygwin", "debian", "debian-cd", "debian-security", "fedora", "fedora-epel", "freebsd", "gentoo", "gentoo-portage", "gnu", "gparted", "ipfire", "isabelle", "linux", "linuxmint", "manjaro", "odroid", "openbsd", "opensuse", "parrot", "raspbian", "ros", "sabayon", "serenity", "slackware", "slitaz", "tdf", "ubuntu", "ubuntu-cdimage", "ubuntu-ports", "ubuntu-releases", "videolan", "voidlinux"}
 
 	db, err := sql.Open("sqlite3", "./mirrorband.sqlite")
 	if err != nil {
