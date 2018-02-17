@@ -17,6 +17,11 @@ type jsonData struct {
 	Rate float64 `json:"rate"`
 }
 
+type dujsonData struct {
+	Distro string `json:"distro"`
+	Bytes  uint64 `json:"bytes"`
+}
+
 var id int
 var time string
 var rx, tx uint64
@@ -119,11 +124,38 @@ func exportTotal() string {
 	return "window.pb = { total: " + strconv.FormatInt(total, 10) + ", percentage: " + strconv.FormatFloat(percentage, 'f', 5, 64) + "};\n"
 }
 
+func exportDistroUsage() string {
+	db, err := sql.Open("sqlite3", "./mirrorband.sqlite")
+	checkErr("Error: Failed opening database: ", err)
+
+	rows, err := db.Query("SELECT id, distro, bytes FROM distrousage ORDER BY id DESC LIMIT 41")
+	checkErr("Error: Query failed", err)
+
+	var entries []dujsonData
+
+	var bytes uint64
+	var distro string
+
+	for rows.Next() {
+		err = rows.Scan(&id, &distro, &bytes)
+		checkErr("DU Error: Failed extracting data from row: ", err)
+
+		newEntry := dujsonData{Distro: distro, Bytes: bytes}
+		entries = append(entries, newEntry)
+	}
+
+	jsonByteArr, err := json.Marshal(entries)
+	checkErr("Error: Marshalling data failed: ", err)
+
+	return "window.distrousage = " + string(jsonByteArr) + ";\n"
+}
+
 func main() {
 	hourStr := exportHour()
 	dayStr := exportDay()
 	monthStr := exportMonth()
 	totalStr := exportTotal()
+	distrousageStr := exportDistroUsage()
 
 	file, _ := os.Create("./statsData.js")
 
@@ -131,6 +163,7 @@ func main() {
 	file.WriteString(dayStr)
 	file.WriteString(monthStr)
 	file.WriteString(totalStr)
+	file.WriteString(distrousageStr)
 
 	file.Sync()
 	file.Close()
